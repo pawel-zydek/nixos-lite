@@ -26,6 +26,10 @@
         "browser.newtabpage.activity-stream.feeds.topsites" = false;
         "browser.newtabpage.activity-stream.feeds.section.topstories" = false;
         "media.ffmpeg.vaapi.enabled" = true;         # sprzętowe dekodowanie wideo (VA-API)
+        # Grafika Braswell nie dekoduje sprzętowo VP9 ani AV1. Bez nich YouTube i inne
+        # serwisy wysyłają H.264, które dekoduje GPU - zamiast 100% CPU i klatkowania.
+        "media.mediasource.vp9.enabled" = false;
+        "media.av1.enabled" = false;
         "widget.use-xdg-desktop-portal.file-picker" = 1;   # okno wyboru plików przez portal
       };
     };

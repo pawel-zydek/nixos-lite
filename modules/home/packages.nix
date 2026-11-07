@@ -27,6 +27,9 @@
       hwdec = "auto-safe";        # VA-API (modules/nixos/hardware/intel-graphics.nix)
       vo = "gpu";
       profile = "fast";           # mniej obróbki obrazu - mniej pracy dla starego GPU
+      # Filmy z sieci (`mpv https://youtube.com/...`): H.264 do 720p - ekran ma 768 linii,
+      # a H.264 jest dekodowane sprzętowo (VP9/AV1 nie)
+      ytdl-format = "bestvideo[height<=?720][vcodec^=avc1]+bestaudio/best[height<=?720]";
     };
   };
 

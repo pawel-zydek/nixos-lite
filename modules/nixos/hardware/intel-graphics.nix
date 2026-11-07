@@ -3,20 +3,17 @@ let
   cfg = config.my.hardware.intelGraphics;
 in
 {
-  options.my.hardware.intelGraphics = {
-    enable = lib.mkEnableOption "sprzętowe dekodowanie wideo na grafice Intel";
-    legacy = lib.mkEnableOption "stary sterownik VA-API (i965) dla procesorów sprzed Broadwell (przed 2014)";
-  };
+  options.my.hardware.intelGraphics.enable = lib.mkEnableOption "sprzętowe dekodowanie wideo na grafice Intel HD 400/405 (Braswell)";
 
   config = lib.mkIf cfg.enable {
-    # Sprzętowe dekodowanie wideo (VA-API) w Firefoksie i mpv - na starym procesorze
-    # to różnica między płynnym YouTube a 100% CPU.
+    # Sprzętowe dekodowanie wideo (VA-API) w Firefoksie i mpv - na Celeronie/Pentium N
+    # to różnica między płynnym filmem a 100% CPU.
+    # Braswell nie jest obsługiwany przez nowszy intel-media-driver (iHD, od Broadwell "Core"),
+    # więc używamy starszego sterownika i965.
+    # Sprzętowo: H.264, HEVC 8-bit, VP8, MPEG-2, VC-1. Brak VP9 i AV1 - dlatego Firefox
+    # ma wyłączone VP9/AV1 (modules/home/firefox.nix), a YouTube wysyła wtedy H.264.
     hardware.graphics.enable = true;
-    hardware.graphics.extraPackages = [
-      (if cfg.legacy
-       then pkgs.intel-vaapi-driver    # Sandy Bridge, Ivy Bridge, Haswell (i starsze)
-       else pkgs.intel-media-driver)   # Broadwell (2014) i nowsze
-    ];
-    environment.sessionVariables.LIBVA_DRIVER_NAME = if cfg.legacy then "i965" else "iHD";
+    hardware.graphics.extraPackages = [ pkgs.intel-vaapi-driver ];
+    environment.sessionVariables.LIBVA_DRIVER_NAME = "i965";
   };
 }

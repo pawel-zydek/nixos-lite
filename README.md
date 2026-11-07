@@ -1,7 +1,18 @@
 # Konfiguracja NixOS – stary laptop
 
-Konfiguracja starego laptopa z 4 GB RAM i grafiką Intela (host `nixos-lite`): NixOS z menedżerem
+Konfiguracja laptopa **Lenovo IdeaPad 110-15IBR** (typ 80T7) – host `nixos-lite`: NixOS z menedżerem
 okien **Sway** na **btrfs** (szyfrowanym LUKS2), Home Manager jako moduł NixOS. Jest to repozytorium do nauki.
+
+| Sprzęt | Jak to obsługuje konfiguracja |
+|---|---|
+| Celeron N3060 / Pentium N3710 (Braswell) | ma AES-NI, więc szyfrowanie LUKS prawie nie kosztuje; na baterii bez turbo (TLP) |
+| Intel HD 400/405 | VA-API przez sterownik `i965` (nowszy `iHD` nie obsługuje Braswell) |
+| brak sprzętowego VP9/AV1 | Firefox ma wyłączone VP9/AV1, więc YouTube przysyła H.264 dekodowane przez GPU; mpv: H.264 do 720p |
+| 4 GB DDR3L | zram (zstd), earlyoom, lekkie programy |
+| dysk SATA: HDD 5400 obr. lub SSD | kompresja zstd:1, planista I/O dobierany automatycznie (HDD: `bfq`, SSD: `mq-deadline`) |
+| ekran 1366x768 | Sway w skali 1 |
+| Wi-Fi + Bluetooth na jednej karcie | firmware z `hardware.enableRedistributableFirmware`, Bluetooth włączany ręcznie (blueman) |
+| UEFI | systemd-boot |
 Struktura jest taka sama jak w [nixos-config](https://github.com/pawel-zydek/nixos-config) i
 [nixos-vm](https://github.com/pawel-zydek/nixos-vm).
 
@@ -34,13 +45,15 @@ modules/
     core/                    # zawsze włączone: nix, boot, memory (zram, earlyoom), locale, użytkownik, pakiety, HM
     storage/                 # disko-btrfs (układ dysku), btrfs (scrub, TRIM, snapper), ntfs
     desktop/                 # sway + greetd, audio
-    hardware/                # firmware, intel-graphics, laptop (TLP, thermald), bluetooth
+    hardware/                # firmware, intel-graphics (i965), laptop (TLP), bluetooth
     services/                # ssh, printing
   home/                      # moduły Home Managera: sway, foot, git, vim, bash, firefox, ...
 users/
   pawel.nix                  # które moduły z modules/home/ dostaje użytkownik
 assets/
   wallpapers/                # tapety
+scripts/
+  ustaw-dysk.sh              # wpisuje dysk laptopa do hosts/lite/default.nix (instalacja, krok 4)
 ```
 
 Moduły spoza `core/` nic nie robią, dopóki host ich nie włączy, np. w `hosts/lite/default.nix`:
@@ -56,9 +69,8 @@ Nowy moduł: utwórz plik w odpowiednim katalogu `modules/nixos/`, dopisz go do
 
 | Partycja / subwolumen | Punkt montowania | Uwagi |
 |---|---|---|
-| BIOS boot (1 MB) | — | tylko dla GRUB-a w trybie BIOS (`my.boot.legacyBios`) |
-| ESP (1 GB, FAT32) | `/boot` | systemd-boot (lub GRUB) |
-| LUKS2 `cryptroot` (reszta dysku) | — | szyfrowanie, hasło przy starcie (`my.storage.encryption`) |
+| ESP (1 GB, FAT32) | `/boot` | systemd-boot |
+| LUKS2 `cryptroot` (reszta dysku) | — | szyfrowanie, hasło przy starcie |
 | btrfs `@` | `/` | wszystkie subwolumeny: `compress=zstd:1`, `noatime` |
 | btrfs `@home` | `/home` | snapshoty snapper (24 h / 7 dni / 3 mies.) w `/home/.snapshots` |
 | btrfs `@nix` | `/nix` | |
@@ -87,10 +99,12 @@ Brak partycji swap — używany jest zram (hibernacja nie jest dostępna).
 
 1. Pobierz **minimalny** obraz NixOS 26.05 z <https://nixos.org/download/> (*Minimal ISO image*, 64-bit Intel/AMD)
    i zapisz go na pendrive (KDE ISO Image Writer, Rufus w trybie DD albo `dd`).
-2. Ustawienia BIOS/UEFI laptopa:
-   - jeśli jest wybór, tryb **UEFI** (bez CSM/Legacy) i **Secure Boot wyłączony**,
-   - tryb dysku **AHCI** (nie RAID/RST),
-   - stary laptop bez UEFI też zadziała – patrz krok 4c.
+2. Ustawienia BIOS laptopa – wejście: **F2** (lub **Fn+F2**) przy starcie (albo mały przycisk *Novo* z boku obudowy
+   przy wyłączonym laptopie → *BIOS Setup*):
+   - *Boot* → **Boot Mode: UEFI**,
+   - *Security* → **Secure Boot: Disabled** (systemd-boot nie jest podpisany),
+   - zapisz **F10**.
+3. Start z pendrive'a: **F12** (lub **Fn+F12**) przy starcie (lub *Novo* → *Boot Menu*), wybierz pendrive w trybie UEFI.
 
 ## 1. Start instalatora i klawiatura
 
@@ -134,40 +148,17 @@ cd /tmp/nixos-lite
 
 ### 4a. Dysk
 
-```bash
-ls -l /dev/disk/by-id/ | grep -v part
-```
-
-Wybierz wpis wskazujący na dysk laptopa: `ata-<MODEL>_<NUMER>` (SATA) albo `nvme-<MODEL>_<NUMER>` (NVMe),
-nie pendrive (`usb-...`). Wpisz go w `hosts/lite/default.nix`:
+Skrypt sam znajduje wewnętrzny dysk SATA (pomija pendrive i napęd DVD), wypisuje go
+i wpisuje do `hosts/lite/default.nix`:
 
 ```bash
-vim hosts/lite/default.nix
-# my.disk = "/dev/disk/by-id/ata-Samsung_SSD_850_EVO_250GB_XXXXXXXX";
+./scripts/ustaw-dysk.sh
 ```
 
-### 4b. Procesor: szyfrowanie i sterownik wideo
+Sprawdź, czy rozmiar i model się zgadzają. `ROTA` pokaże przy okazji, czy w laptopie jest jeszcze
+fabryczny dysk talerzowy (`1`), czy SSD (`0`) – konfiguracja działa z oboma bez zmian.
 
-```bash
-grep -m1 -o -w aes /proc/cpuinfo      # "aes" = procesor ma sprzętowe AES-NI
-lscpu | grep "Model name"
-```
-
-- Brak wyniku pierwszego polecenia: procesor nie ma AES-NI i szyfrowanie LUKS mocno spowolni dysk.
-  Zdecyduj: zostaw szyfrowanie (bezpieczniej, gdy laptop jest noszony) albo wyłącz je w `hosts/lite/default.nix`:
-  `my.storage.encryption = false;`
-- Core i3/i5/i7 **2., 3. lub 4. generacji** (np. i5-2520M, i5-3320M, i5-4300U) albo starszy:
-  odkomentuj `my.hardware.intelGraphics.legacy = true;`. Od 5. generacji (i5-5200U i nowsze) nic nie zmieniasz.
-  Przy Celeronach/Pentiumach sprawdź po instalacji `vainfo` (krok 11) i ewentualnie zmień.
-
-### 4c. UEFI czy BIOS
-
-```bash
-ls /sys/firmware/efi && echo UEFI || echo BIOS
-```
-
-Jeśli wyszło **BIOS**, odkomentuj w `hosts/lite/default.nix` linię `my.boot.legacyBios = true;`
-(GRUB zamiast systemd-boot). Układ dysku zostaje ten sam.
+Numer seryjny dysku jest inny w każdym egzemplarzu, dlatego nie da się go wpisać w repozytorium z góry.
 
 ## 5. Plik hardware-configuration.nix
 
@@ -256,8 +247,8 @@ Wyjmij pendrive.
 2. W tuigreet zaloguj się jako `pawel` – startuje Sway (tuigreet zapamięta użytkownika).
 3. Wi-Fi powinno połączyć się samo (krok 9); jeśli nie – ikona sieci w zasobniku na górnym pasku
    albo `nmtui` w terminalu.
-4. Sprawdź sprzętowe dekodowanie wideo: `nix-shell -p libva-utils --run vainfo`.
-   Musi pokazać sterownik bez błędu. Błąd przy `iHD` → włącz `my.hardware.intelGraphics.legacy = true;`.
+4. Sprawdź sprzętowe dekodowanie wideo: `nix-shell -p libva-utils --run vainfo` – powinien pokazać
+   sterownik *Intel i965 driver … Braswell* i listę profili (m.in. `VAProfileH264High`).
 5. Zapisz zmiany w repozytorium (głównie `hardware-configuration.nix` i `my.disk`):
 
 ```bash
@@ -371,14 +362,16 @@ Stare laptopy często nie mają aktualizacji przez fwupd – wtedy `get-updates`
 
 | Objaw | Rozwiązanie |
 |---|---|
-| Po instalacji laptop nie startuje z dysku | UEFI: sprawdź, czy w BIOS-ie jest wpis „Linux Boot Manager”; komputer bez UEFI → `my.boot.legacyBios = true;` (krok 4c) |
-| Sway nie startuje, czarny ekran po zalogowaniu | w konsoli (`Ctrl+Alt+F2`): `sway 2> ~/sway.log`, przeczytaj log. Bardzo stara grafika (przed 2008): `WLR_RENDERER=pixman sway` |
+| Po instalacji laptop nie startuje z dysku | BIOS (F2) → *Boot*: przesuń „Linux Boot Manager” na pierwsze miejsce; Boot Mode musi być UEFI |
+| Sway nie startuje, czarny ekran po zalogowaniu | w konsoli (`Ctrl+Alt+F2`): `sway 2> ~/sway.log`, przeczytaj log |
+| Laptop losowo zamarza (znany problem części układów Bay Trail/Braswell) | dopisz w `modules/nixos/core/boot.nix` do `kernelParams`: `"intel_idle.max_cstate=1"` |
+| Wi-Fi zablokowane (`rfkill list` → *Hard blocked: yes*) | `sudo modprobe -r ideapad_laptop`; jeśli pomaga, dopisz w hoście `boot.blacklistedKernelModules = [ "ideapad_laptop" ];` |
+| YouTube klatkuje | `about:support` w Firefoksie → *Media* → dekodowanie sprzętowe H.264 musi być „Supported”; jakość 720p |
 | Program nie działa / wygląda źle pod Waylandem | uruchomi się przez XWayland; dla Electron: `NIXOS_OZONE_WL=` (puste) przed nazwą programu |
-| `vainfo` – błąd przy `iHD` | stary procesor: `my.hardware.intelGraphics.legacy = true;` |
 | Brak ikony sieci w pasku | `nm-applet --indicator &` w terminalu; zamiennik: `nmtui` |
 | Touchpad nie klika stuknięciem | `swaymsg -t get_inputs` – sprawdź, czy urządzenie ma typ `touchpad` |
 | System zwalnia przy wielu kartach | to normalne przy 4 GB; earlyoom zamknie najcięższy proces. Mniej kart, uBlock Origin |
-| Bardzo wolny dysk po szyfrowaniu | brak AES-NI (krok 4b) – rozważ `my.storage.encryption = false;` i reinstalację |
+| Bardzo wolno działa przy fabrycznym HDD | to dysk 5400 obr. – największą różnicę da wymiana na dowolny SSD SATA 2,5" (i reinstalacja z tego repo) |
 | `nix` nie zna `flake` / `run` | `export NIX_CONFIG="experimental-features = nix-command flakes"` |
 | Zmiany w plikach są ignorowane | `git add -A` – flake widzi tylko pliki w gicie |
 | System nie startuje po zmianie | wybierz poprzednią generację w menu startowym |

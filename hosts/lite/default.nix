@@ -1,5 +1,10 @@
 { ... }:
 {
+  # Lenovo IdeaPad 110-15IBR (typ 80T7), 2016:
+  #   - Intel Celeron N3060 (2 rdzenie) lub Pentium N3710 (4 rdzenie), rodzina Braswell
+  #   - grafika Intel HD 400/405 (Gen8) - VA-API tylko przez sterownik i965
+  #   - 4 GB DDR3L, ekran 1366x768, dysk SATA (HDD 5400 obr. lub SSD po wymianie)
+  #   - UEFI, Wi-Fi + Bluetooth na jednej karcie (Realtek lub Qualcomm Atheros)
   imports = [
     ./hardware-configuration.nix
     ../../modules/nixos
@@ -8,8 +13,8 @@
   # --- Tożsamość hosta ---
   networking.hostName = "nixos-lite";
 
-  # Dysk systemowy - uzupełnić przed instalacją (README, krok 4):
-  #   ls -l /dev/disk/by-id/ | grep -v part
+  # Dysk systemowy. Numer seryjny jest inny w każdym egzemplarzu, więc wpisuje go
+  # skrypt podczas instalacji (README, krok 4): ./scripts/ustaw-dysk.sh
   my.disk = "/dev/disk/by-id/ata-WPISZ_TUTAJ_DYSK";
 
   # --- Co jest włączone na tym hoście ---
@@ -19,14 +24,8 @@
 
   my.hardware.firmware.enable = true;
   my.hardware.intelGraphics.enable = true;
-  # Procesor starszy niż Broadwell (Core 4. gen. i wcześniejsze, ok. 2014)?
-  # Wtedy włącz stary sterownik VA-API (README, krok 4):
-  # my.hardware.intelGraphics.legacy = true;
   my.hardware.laptop.enable = true;
-  # my.hardware.bluetooth.enable = true;
-
-  # Laptop bez UEFI (tylko tryb BIOS/Legacy) - GRUB zamiast systemd-boot:
-  # my.boot.legacyBios = true;
+  my.hardware.bluetooth.enable = true;
 
   # my.services.printing.enable = true;
   my.services.ssh.enable = true;

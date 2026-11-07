@@ -16,6 +16,15 @@ in
     # TRIM raz w tygodniu (SSD); na dysku talerzowym nic nie robi
     services.fstrim.enable = true;
 
+    # Planista I/O dobierany automatycznie do rodzaju dysku - nie trzeba wiedzieć,
+    # czy w laptopie jest jeszcze fabryczny HDD, czy SSD:
+    #   HDD (rotational=1) -> bfq: system i okna reagują, gdy w tle trwa duży zapis (np. nixos-rebuild)
+    #   SSD (rotational=0) -> mq-deadline: najmniejszy narzut na słabym procesorze
+    services.udev.extraRules = ''
+      ACTION=="add|change", KERNEL=="sd[a-z]", ATTR{queue/rotational}=="1", ATTR{queue/scheduler}="bfq"
+      ACTION=="add|change", KERNEL=="sd[a-z]", ATTR{queue/rotational}=="0", ATTR{queue/scheduler}="mq-deadline"
+    '';
+
     # Snapshoty /home - odpowiednik sanoid z laptopa PG (24 h / 7 dni / 3 mies.).
     # Snapshot btrfs nie zajmuje RAM-u i prawie nie zajmuje miejsca, dopóki pliki się nie zmienią.
     services.snapper = {
