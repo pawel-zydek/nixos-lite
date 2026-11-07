@@ -10,6 +10,6 @@
   boot.initrd.verbose = false;
   boot.kernelParams = [ "quiet" "udev.log_level=3" ];
 
-  # initrd oparty o systemd - szybszy start, czytelne pytanie o hasło LUKS
+  # initrd oparty o systemd - szybszy start
   boot.initrd.systemd.enable = true;
 }

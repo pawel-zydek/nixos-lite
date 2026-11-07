@@ -1,6 +1,7 @@
 { config, lib, pkgs, ... }:
 let
   cfg = config.my.desktop.sway;
+  sway = "${config.programs.sway.package}/bin/sway";   # Sway z NixOS (z poprawkami GTK)
 in
 {
   options.my.desktop.sway.enable = lib.mkEnableOption "menedżer okien Sway (Wayland) z ekranem logowania greetd";
@@ -14,18 +15,27 @@ in
       extraPackages = [ ];             # bez domyślnego zestawu (foot, dmenu...) - dostarcza je Home Manager
     };
 
-    # Ekran logowania w trybie tekstowym: greetd + tuigreet.
-    # Zajmuje kilka MB (LightDM/SDDM - kilkadziesiąt) i od razu startuje Sway.
+    # greetd: lekki menedżer logowania (kilka MB; LightDM/SDDM - kilkadziesiąt).
     services.greetd = {
       enable = true;
-      settings.default_session = {
-        command = "${pkgs.tuigreet}/bin/tuigreet --time --remember --asterisks --cmd sway";
-        user = "greeter";
+      settings = {
+        # Autologowanie: po starcie systemu od razu Sway jako pawel, bez pytania o hasło
+        initial_session = {
+          command = sway;
+          user = "pawel";
+        };
+        # Po wylogowaniu (Super+Shift+e) - tekstowy ekran logowania tuigreet
+        default_session = {
+          command = "${pkgs.tuigreet}/bin/tuigreet --time --remember --asterisks --cmd ${sway}";
+          user = "greeter";
+        };
       };
     };
 
     # Magazyn haseł (Secret Service) - z niego korzysta git (credential.helper = libsecret).
-    # Odblokowuje się hasłem podanym przy logowaniu.
+    # Przy autologowaniu nie ma hasła, którym mógłby się odblokować - przy pierwszym
+    # zapisie (git push) poprosi o utworzenie magazynu "login": puste hasło = odblokowany
+    # zawsze, ale zapisany niezaszyfrowany (README, krok 11).
     services.gnome.gnome-keyring.enable = true;
     security.pam.services.greetd.enableGnomeKeyring = true;
     programs.seahorse.enable = true;    # podgląd zapisanych haseł

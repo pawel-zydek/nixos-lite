@@ -1,11 +1,11 @@
 # Konfiguracja NixOS – stary laptop
 
 Konfiguracja laptopa **Lenovo IdeaPad 110-15IBR** (typ 80T7) – host `nixos-lite`: NixOS z menedżerem
-okien **Sway** na **btrfs** (szyfrowanym LUKS2), Home Manager jako moduł NixOS. Jest to repozytorium do nauki.
+okien **Sway** na **btrfs** (bez szyfrowania, z autologowaniem użytkownika `pawel`), Home Manager jako moduł NixOS. Jest to repozytorium do nauki.
 
 | Sprzęt | Jak to obsługuje konfiguracja |
 |---|---|
-| Celeron N3060 / Pentium N3710 (Braswell) | ma AES-NI, więc szyfrowanie LUKS prawie nie kosztuje; na baterii bez turbo (TLP) |
+| Celeron N3060 / Pentium N3710 (Braswell) | na baterii bez turbo (TLP), ciężkie budowanie najlepiej na PG |
 | Intel HD 400/405 | VA-API przez sterownik `i965` (nowszy `iHD` nie obsługuje Braswell) |
 | brak sprzętowego VP9/AV1 | Firefox ma wyłączone VP9/AV1, więc YouTube przysyła H.264 dekodowane przez GPU; mpv: H.264 do 720p |
 | 4 GB DDR3L | zram (zstd), earlyoom, lekkie programy |
@@ -70,7 +70,6 @@ Nowy moduł: utwórz plik w odpowiednim katalogu `modules/nixos/`, dopisz go do
 | Partycja / subwolumen | Punkt montowania | Uwagi |
 |---|---|---|
 | ESP (1 GB, FAT32) | `/boot` | systemd-boot |
-| LUKS2 `cryptroot` (reszta dysku) | — | szyfrowanie, hasło przy starcie |
 | btrfs `@` | `/` | wszystkie subwolumeny: `compress=zstd:1`, `noatime` |
 | btrfs `@home` | `/home` | snapshoty snapper (24 h / 7 dni / 3 mies.) w `/home/.snapshots` |
 | btrfs `@nix` | `/nix` | |
@@ -196,7 +195,6 @@ nix run github:nix-community/disko/latest -- --mode destroy,format,mount --flake
 ```
 
 - disko poprosi o potwierdzenie usunięcia danych,
-- potem **dwa razy o hasło LUKS** – będzie wpisywane przy każdym starcie, nie zgub go.
 
 Sprawdzenie:
 
@@ -235,7 +233,6 @@ chown -R 1000:100 /mnt/home/pawel/nixos-lite      # 1000 = pawel, 100 = grupa us
 
 ```bash
 umount -R /mnt
-cryptsetup close cryptroot     # tylko przy szyfrowaniu
 reboot
 ```
 
@@ -243,8 +240,9 @@ Wyjmij pendrive.
 
 ## 11. Pierwsze uruchomienie
 
-1. Wpisz hasło LUKS.
-2. W tuigreet zaloguj się jako `pawel` – startuje Sway (tuigreet zapamięta użytkownika).
+1. System loguje się sam jako `pawel` i od razu startuje Sway (autologowanie greetd).
+   Hasło użytkownika z kroku 9 jest potrzebne do `sudo`, odblokowania ekranu (swaylock) i po wylogowaniu
+   (wtedy pojawia się tekstowy ekran logowania tuigreet).
 3. Wi-Fi powinno połączyć się samo (krok 9); jeśli nie – ikona sieci w zasobniku na górnym pasku
    albo `nmtui` w terminalu.
 4. Sprawdź sprzętowe dekodowanie wideo: `nix-shell -p libva-utils --run vainfo` – powinien pokazać
@@ -261,6 +259,10 @@ git push
 
 Przy pierwszym `git push` podaj login GitHub i **token** (Personal Access Token) zamiast hasła –
 zostanie zapamiętany w GNOME Keyring (podgląd: program *Hasła i klucze* / `seahorse`).
+Przy autologowaniu GNOME Keyring nie ma hasła logowania, którym mógłby się odblokować, więc za pierwszym
+razem zapyta o hasło do nowego magazynu *login*:
+- **puste hasło** – magazyn zawsze otwarty, nic więcej nie pyta (token zapisany na dysku bez szyfrowania),
+- **hasło** – token zaszyfrowany, ale okno z pytaniem pojawi się raz po każdym starcie przy pierwszym `git push`.
 
 ## Podstawowe skróty Sway
 

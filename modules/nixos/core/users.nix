@@ -1,7 +1,7 @@
 { ... }:
 {
-  # Konto systemowe. Dodatkowe grupy dopisują
-  # moduły, które ich potrzebują.
+  # Konto systemowe. Grupa wheel = uprawnienia sudo (z hasłem użytkownika).
+  # Dodatkowe grupy dopisują moduły, które ich potrzebują.
   users.users.pawel = {
     isNormalUser = true;
     description = "Paweł Żydek";
