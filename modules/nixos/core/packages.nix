@@ -10,6 +10,5 @@
     nvd               # porównywanie aktualizacji
     fastfetch         # informacje o systemie
     smartmontools     # kontrola dysku
-    # bitwarden-desktop  # Electron (~300 MB RAM); na 4 GB wystarczy rozszerzenie w Firefoksie
   ];
 }
