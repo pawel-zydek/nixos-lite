@@ -3,6 +3,15 @@ let
   mod = config.wayland.windowManager.sway.config.modifier;
   wallpaper = ../../assets/wallpapers/NixOS/NixOS-Simple-Blue.png;
   lock = "${pkgs.swaylock}/bin/swaylock -f";
+  fuzzel = "${pkgs.fuzzel}/bin/fuzzel";
+
+  # Super+Shift+d: dowolne polecenie, jak dmenu_run w i3 (lista wszystkich programów z PATH)
+  runner = pkgs.writeShellScript "uruchom" ''
+    compgen -c | sort -u | ${fuzzel} --dmenu --prompt "uruchom: " | xargs -r swaymsg exec --
+  '';
+
+  # Tryb zasilania (Super+Shift+e) - nazwa trybu wyświetla się na pasku jako podpowiedź
+  powerMode = "zasilanie: (w)yloguj  (u)śpij  (r)estart  (p)wyłącz  [Esc] anuluj";
 in
 {
   # Konfiguracja Sway (~/.config/sway/config). Sesję uruchamia greetd (modules/nixos/desktop/sway.nix).
@@ -17,7 +26,7 @@ in
     config = {
       modifier = "Mod4";       # klawisz Super (Windows)
       terminal = "footclient"; # okno terminala podłączane do serwera foot (modules/home/foot.nix)
-      menu = "${pkgs.fuzzel}/bin/fuzzel";
+      menu = fuzzel;   # Super+d: programy z plikami .desktop (te z menu w Plasmie)
 
       fonts = {
         names = [ "DejaVu Sans" ];
@@ -64,6 +73,12 @@ in
         # blokada ekranu
         "${mod}+Shift+x" = "exec ${lock}";
 
+        # dowolne polecenie (np. poweroff, btop, nmtui)
+        "${mod}+Shift+d" = "exec ${runner}";
+
+        # tryb zasilania zamiast domyślnego pytania o wyjście z Sway
+        "${mod}+Shift+e" = ''mode "${powerMode}"'';
+
         # zrzuty ekranu do schowka: cały ekran / zaznaczony obszar
         "Print" = "exec ${pkgs.grim}/bin/grim - | ${pkgs.wl-clipboard}/bin/wl-copy";
         "Shift+Print" = ''exec ${pkgs.grim}/bin/grim -g "$(${pkgs.slurp}/bin/slurp)" - | ${pkgs.wl-clipboard}/bin/wl-copy'';
@@ -79,6 +94,18 @@ in
         "${mod}+Prior" = "exec wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ 5%+";   # Page Up
         "${mod}+Next" = "exec wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-";           # Page Down
         "${mod}+End" = "exec wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle";
+      };
+
+      # Tryby: po wejściu działają tylko klawisze z trybu (jak Super+r przy zmianie rozmiaru)
+      modes = lib.mkOptionDefault {
+        "${powerMode}" = {
+          w = "exec swaymsg exit";
+          u = "mode default, exec systemctl suspend";   # ekran zablokuje swayidle (before-sleep)
+          r = "exec systemctl reboot";
+          p = "exec systemctl poweroff";
+          Escape = "mode default";
+          Return = "mode default";
+        };
       };
 
       startup = [

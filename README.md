@@ -302,6 +302,7 @@ Klawisz `Mod` to **Super** (klawisz Windows). Skróty są takie same jak w i3.
 |---|---|
 | `Super+Enter` | terminal (foot) |
 | `Super+d` | uruchamianie programów (fuzzel) |
+| `Super+Shift+d` | dowolne polecenie z PATH, np. `poweroff`, `btop` (jak `dmenu_run` w i3) |
 | `Super+Shift+q` | zamknięcie okna |
 | `Super+1` … `Super+0` | przełączenie obszaru roboczego |
 | `Super+Shift+1` … | przeniesienie okna na obszar roboczy |
@@ -316,7 +317,7 @@ Klawisz `Mod` to **Super** (klawisz Windows). Skróty są takie same jak w i3.
 | `Super+PageUp` / `Super+PageDown` / `Super+End` | głośniej / ciszej / wycisz (bez klawiszy multimedialnych, np. w VM) |
 | `Super+Shift+minus` / `Super+minus` | schowaj okno do scratchpada / pokaż je z powrotem |
 | `Super+Shift+c` | przeładowanie konfiguracji |
-| `Super+Shift+e` | wyjście z Sway |
+| `Super+Shift+e` | tryb zasilania: `w` wyloguj, `u` uśpij, `r` restart, `p` wyłącz, `Esc` anuluj |
 
 Klawisze głośności i jasności laptopa działają. Ekran blokuje się po 5 min bezczynności,
 wygasza po 10 min, a także przed uśpieniem (zamknięcie klapy).
