@@ -313,6 +313,8 @@ Klawisz `Mod` to **Super** (klawisz Windows). Skróty są takie same jak w i3.
 | `Super+r` | tryb zmiany rozmiaru (strzałki, `Esc` kończy) |
 | `Super+Shift+x` | blokada ekranu |
 | `Print` / `Shift+Print` | zrzut ekranu / zaznaczonego obszaru do schowka |
+| `Super+PageUp` / `Super+PageDown` / `Super+End` | głośniej / ciszej / wycisz (bez klawiszy multimedialnych, np. w VM) |
+| `Super+Shift+minus` / `Super+minus` | schowaj okno do scratchpada / pokaż je z powrotem |
 | `Super+Shift+c` | przeładowanie konfiguracji |
 | `Super+Shift+e` | wyjście z Sway |
 

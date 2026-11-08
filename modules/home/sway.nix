@@ -46,6 +46,20 @@ in
       };
       focus.followMouse = false;
 
+      # Start na obszarze 1. Bez tego Sway startuje na 10: Home Manager zapisuje skróty
+      # alfabetycznie, więc "Mod4+0" (obszar 10) jest pierwszym skrótem do obszaru w pliku.
+      defaultWorkspace = "workspace number 1";
+
+      # Reguły dla okien (`swaymsg -t get_tree` pokazuje app_id i title)
+      window.commands = [
+        # małe okna ustawień jako pływające, zamiast dzielić ekran na pół
+        { criteria.app_id = "pavucontrol"; command = "floating enable"; }
+        { criteria.app_id = "nm-connection-editor"; command = "floating enable"; }
+        { criteria.app_id = ".blueman-manager-wrapped"; command = "floating enable"; }
+        # obraz w obrazie z Firefoksa: pływający i widoczny na każdym obszarze roboczym
+        { criteria.title = "^Obraz w obrazie$|^Picture-in-Picture$"; command = "floating enable, sticky enable"; }
+      ];
+
       keybindings = lib.mkOptionDefault {
         # blokada ekranu
         "${mod}+Shift+x" = "exec ${lock}";
@@ -61,6 +75,10 @@ in
         "XF86AudioMicMute" = "exec wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle";
         "XF86MonBrightnessUp" = "exec brightnessctl set 5%+";
         "XF86MonBrightnessDown" = "exec brightnessctl set 5%-";
+        # głośność bez klawiszy multimedialnych (np. w VM)
+        "${mod}+Prior" = "exec wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ 5%+";   # Page Up
+        "${mod}+Next" = "exec wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-";           # Page Down
+        "${mod}+End" = "exec wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle";
       };
 
       startup = [
@@ -81,10 +99,23 @@ in
     };
   };
 
-  # Pasek stanu: sieć, bateria, dysk, obciążenie, pamięć, data (ten sam program co w i3)
+  # Pasek stanu: sieć, bateria, dysk, obciążenie, pamięć, głośność, data (ten sam program co w i3).
+  # Kolejność według `position`. Opis modułów i formatów: `man i3status`
   programs.i3status = {
     enable = true;
-    enableDefault = true;
+    enableDefault = true;          # zestaw domyślny, poniżej zmiany względem niego
+    modules = {
+      "ipv6".enable = false;       # bez adresu IPv6
+      "volume master" = {
+        position = 8;
+        settings = {
+          format = "🔊 %volume";
+          format_muted = "🔇 %volume";
+          device = "pulse";        # PipeWire udostępnia interfejs PulseAudio
+        };
+      };
+      "tztime local".position = 9; # zegar na końcu
+    };
   };
 
   # Ekran blokady
