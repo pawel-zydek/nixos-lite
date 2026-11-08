@@ -12,7 +12,13 @@
     ncdu                          # Zużycie dysku (w terminalu)
     lame flac vorbis-tools opus-tools   # kodery MP3, FLAC, Ogg
     # Gry:
-    wesnoth
+    # Wesnoth z tłumaczeniami (m.in. polskim). Pakiet w nixpkgs buduje się bez Pythona,
+    # przez co CMake pomija kompilację tłumaczeń i zostaje tylko angielski.
+    # Nie ma go w cache NixOS - kompiluje się od zera, więc budować na PG:
+    #   nixos-rebuild switch --flake .#nixos-lite --target-host pawel@ADRES_IP --sudo
+    (wesnoth.overrideAttrs (old: {
+      nativeBuildInputs = old.nativeBuildInputs ++ [ python3 gettext ];
+    }))
   ];
 
   # Odtwarzacz wideo zamiast VLC - lżejszy i dobrze korzysta ze sprzętowego dekodowania
