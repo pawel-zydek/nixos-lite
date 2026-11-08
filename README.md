@@ -111,9 +111,15 @@ Brak partycji swap — używany jest zram (hibernacja nie jest dostępna).
 sudo -i                 # dalej wszystko jako root
 loadkeys pl2            # polska klawiatura w konsoli
 export NIX_CONFIG="experimental-features = nix-command flakes"
+mount -o remount,size=3G /nix/.rw-store   # więcej miejsca na pobierane pliki
 ```
 
 `NIX_CONFIG` włącza flakes na czas tej sesji – bez tego polecenia `nix` nie zadziałają z repozytorium.
+
+Instalator nie ma dysku – wszystko, co pobiera `nix`, trafia do `/nix/.rw-store` w pamięci RAM,
+który domyślnie ma tylko połowę RAM-u (przy 4 GB to ok. 2 GB). Bez powiększenia instalacja kończy się
+błędem `No space left on device`. RAM jest zajmowany tylko przez to, co faktycznie zostanie zapisane,
+więc 3 GB przy 4 GB RAM jest bezpieczne. Sprawdzenie: `df -h /nix/.rw-store`.
 
 ## 2. Połączenie z siecią
 
@@ -191,10 +197,12 @@ ls -l $(grep -o '/dev/disk/by-id/[^"]*' hosts/lite/default.nix)
 ```
 
 ```bash
-nix run github:nix-community/disko/latest -- --mode destroy,format,mount --flake .#nixos-lite
+nix run --inputs-from . disko -- --mode destroy,format,mount --flake .#nixos-lite
 ```
 
-- disko poprosi o potwierdzenie usunięcia danych,
+- `--inputs-from .` bierze disko w wersji przypiętej w `flake.lock` repozytorium – korzysta z nixpkgs
+  pobranego już w kroku 6, więc nic nie jest pobierane drugi raz (mniej miejsca w RAM, szybciej),
+- disko poprosi o potwierdzenie usunięcia danych.
 
 Sprawdzenie:
 
@@ -374,6 +382,7 @@ Stare laptopy często nie mają aktualizacji przez fwupd – wtedy `get-updates`
 | Touchpad nie klika stuknięciem | `swaymsg -t get_inputs` – sprawdź, czy urządzenie ma typ `touchpad` |
 | System zwalnia przy wielu kartach | to normalne przy 4 GB; earlyoom zamknie najcięższy proces. Mniej kart, uBlock Origin |
 | Bardzo wolno działa przy fabrycznym HDD | to dysk 5400 obr. – największą różnicę da wymiana na dowolny SSD SATA 2,5" (i reinstalacja z tego repo) |
+| `No space left on device` w instalatorze | brak miejsca w RAM instalatora: `mount -o remount,size=3G /nix/.rw-store` (krok 1) |
 | `nix` nie zna `flake` / `run` | `export NIX_CONFIG="experimental-features = nix-command flakes"` |
 | Zmiany w plikach są ignorowane | `git add -A` – flake widzi tylko pliki w gicie |
 | System nie startuje po zmianie | wybierz poprzednią generację w menu startowym |
