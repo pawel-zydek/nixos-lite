@@ -15,7 +15,7 @@
 
   # Dysk systemowy. Numer seryjny jest inny w każdym egzemplarzu, więc wpisuje go
   # skrypt podczas instalacji (README, krok 4): ./scripts/ustaw-dysk.sh
-  my.disk = "/dev/disk/by-id/ata-WPISZ_TUTAJ_DYSK";
+  my.disk = "/dev/disk/by-id/ata-KINGSTON_SV300S37A120G_50026B7243091A57";
 
   # --- Co jest włączone na tym hoście ---
   my.storage.btrfs.enable = true;

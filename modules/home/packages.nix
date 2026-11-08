@@ -11,6 +11,8 @@
     remmina                       # Klient RDP i VNC
     ncdu                          # Zużycie dysku (w terminalu)
     lame flac vorbis-tools opus-tools   # kodery MP3, FLAC, Ogg
+    # Gry:
+    wesnoth
   ];
 
   # Odtwarzacz wideo zamiast VLC - lżejszy i dobrze korzysta ze sprzętowego dekodowania
