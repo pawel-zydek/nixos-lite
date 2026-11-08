@@ -6,19 +6,12 @@ in
   options.my.hardware.laptop.enable = lib.mkEnableOption "zarządzanie energią laptopa (TLP, bateria, klapa)";
 
   config = lib.mkIf cfg.enable {
-    # TLP: oszczędzanie energii na baterii, pełna wydajność na zasilaczu
-    services.tlp = {
-      enable = true;
-      settings = {
-        CPU_SCALING_GOVERNOR_ON_AC = "performance";
-        CPU_SCALING_GOVERNOR_ON_BAT = "powersave";
-        CPU_ENERGY_PERF_POLICY_ON_AC = "performance";
-        CPU_ENERGY_PERF_POLICY_ON_BAT = "power";
-        # Bateria IdeaPada 110 ma tylko 24 Wh - na baterii wyłączamy turbo
-        CPU_BOOST_ON_AC = 1;
-        CPU_BOOST_ON_BAT = 0;
-      };
-    };
+    # TLP: oszczędzanie energii (dysk, USB, Wi-Fi, PCIe) na domyślnych ustawieniach.
+    # Procesora celowo nie ograniczamy: z wyłączonym turbo i polityką "power" Celeron N3060
+    # na baterii pracował przy 480 MHz i 100% obciążenia. Domyślnie TLP na baterii
+    # ustawia "balance_power" i zostawia turbo, a procesor i tak zwalnia, gdy nic nie robi.
+    # Stan: `sudo tlp-stat -p` (procesor), `sudo tlp-stat -s` (zasilacz/bateria).
+    services.tlp.enable = true;
     # TLP i power-profiles-daemon wykluczają się
     services.power-profiles-daemon.enable = false;
 
