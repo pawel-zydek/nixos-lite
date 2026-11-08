@@ -111,15 +111,36 @@ Brak partycji swap — używany jest zram (hibernacja nie jest dostępna).
 sudo -i                 # dalej wszystko jako root
 loadkeys pl2            # polska klawiatura w konsoli
 export NIX_CONFIG="experimental-features = nix-command flakes"
-mount -o remount,size=3G /nix/.rw-store   # więcej miejsca na pobierane pliki
 ```
 
 `NIX_CONFIG` włącza flakes na czas tej sesji – bez tego polecenia `nix` nie zadziałają z repozytorium.
 
-Instalator nie ma dysku – wszystko, co pobiera `nix`, trafia do `/nix/.rw-store` w pamięci RAM,
-który domyślnie ma tylko połowę RAM-u (przy 4 GB to ok. 2 GB). Bez powiększenia instalacja kończy się
-błędem `No space left on device`. RAM jest zajmowany tylko przez to, co faktycznie zostanie zapisane,
-więc 3 GB przy 4 GB RAM jest bezpieczne. Sprawdzenie: `df -h /nix/.rw-store`.
+### Pamięć instalatora (konieczne przy 4 GB RAM)
+
+Instalator nie ma dysku – wszystko, co pobiera `nix` (źródła nixpkgs, narzędzia disko), trafia do
+`/nix/.rw-store` w pamięci RAM. Do tego sam `nix` przy liczeniu konfiguracji zajmuje 1–1,5 GB.
+Przy 4 GB RAM bez poniższych poleceń disko kończy się błędem `No space left on device`
+albo jest po cichu zamykany z braku pamięci (kod wyjścia `137`).
+
+```bash
+# swap w RAM (zram) - pobrane pliki kompresują się kilkukrotnie, zwalniając miejsce dla nix
+modprobe zram
+zramctl /dev/zram0 --algorithm zstd --size 4G
+mkswap /dev/zram0
+swapon --priority 100 /dev/zram0
+
+# więcej miejsca na pobierane pliki (domyślnie połowa RAM)
+mount -o remount,size=3G /nix/.rw-store
+```
+
+Sprawdzenie:
+
+```bash
+swapon --show            # /dev/zram0, 4G
+df -h /nix/.rw-store     # Size 3,0G
+```
+
+Oba ustawienia działają do restartu instalatora – po ponownym uruchomieniu z pendrive'a trzeba je powtórzyć.
 
 ## 2. Połączenie z siecią
 
@@ -142,7 +163,7 @@ passwd nixos            # tymczasowe hasło dla użytkownika instalatora
 ip -br addr             # adres IP laptopa
 ```
 
-Na PG: `ssh nixos@ADRES_IP`, potem znowu `sudo -i` oraz `export NIX_CONFIG=...` z kroku 1.
+Na PG: `ssh nixos@ADRES_IP`, potem znowu `sudo -i` oraz `export NIX_CONFIG=...` z kroku 1 (zram i `remount` zostają – dotyczą całego instalatora, nie sesji).
 
 ## 4. Pobranie repozytorium i sprawdzenie sprzętu
 
@@ -197,12 +218,13 @@ ls -l $(grep -o '/dev/disk/by-id/[^"]*' hosts/lite/default.nix)
 ```
 
 ```bash
-nix run --inputs-from . disko -- --mode destroy,format,mount --flake .#nixos-lite
+nix run --inputs-from . disko -- --mode destroy,format,mount --flake .#nixos-lite; echo "kod wyjścia: $?"
 ```
 
 - `--inputs-from .` bierze disko w wersji przypiętej w `flake.lock` repozytorium – korzysta z nixpkgs
   pobranego już w kroku 6, więc nic nie jest pobierane drugi raz (mniej miejsca w RAM, szybciej),
-- disko poprosi o potwierdzenie usunięcia danych.
+- disko poprosi o potwierdzenie usunięcia danych,
+- `kod wyjścia: 0` – sukces; `137` – zabrakło pamięci: sprawdź `swapon --show` i `df -h /nix/.rw-store` (krok 1).
 
 Sprawdzenie:
 
@@ -382,7 +404,7 @@ Stare laptopy często nie mają aktualizacji przez fwupd – wtedy `get-updates`
 | Touchpad nie klika stuknięciem | `swaymsg -t get_inputs` – sprawdź, czy urządzenie ma typ `touchpad` |
 | System zwalnia przy wielu kartach | to normalne przy 4 GB; earlyoom zamknie najcięższy proces. Mniej kart, uBlock Origin |
 | Bardzo wolno działa przy fabrycznym HDD | to dysk 5400 obr. – największą różnicę da wymiana na dowolny SSD SATA 2,5" (i reinstalacja z tego repo) |
-| `No space left on device` w instalatorze | brak miejsca w RAM instalatora: `mount -o remount,size=3G /nix/.rw-store` (krok 1) |
+| `No space left on device` lub kod wyjścia `137` w instalatorze | brak pamięci instalatora – zram i `remount` z kroku 1 (*Pamięć instalatora*), potem ponów polecenie |
 | `nix` nie zna `flake` / `run` | `export NIX_CONFIG="experimental-features = nix-command flakes"` |
 | Zmiany w plikach są ignorowane | `git add -A` – flake widzi tylko pliki w gicie |
 | System nie startuje po zmianie | wybierz poprzednią generację w menu startowym |
