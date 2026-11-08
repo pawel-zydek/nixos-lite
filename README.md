@@ -397,7 +397,9 @@ Stare laptopy często nie mają aktualizacji przez fwupd – wtedy `get-updates`
 
 | Objaw | Rozwiązanie |
 |---|---|
-| Po instalacji laptop nie startuje z dysku | BIOS (F2) → *Boot*: przesuń „Linux Boot Manager” na pierwsze miejsce; Boot Mode musi być UEFI |
+| Po instalacji laptop nie startuje z dysku | BIOS (F2): *Boot Mode* UEFI, **Secure Boot wyłączony** (po przełączeniu z Legacy bywa znowu włączony), *Boot* → „Linux Boot Manager” na pierwszym miejscu |
+| Instalacja z pendrive'a uruchomionego w trybie BIOS - brak bootloadera | pendrive w trybie UEFI (F12 → pozycja z „EFI”), podłączenie systemu i `nixos-enter --root /mnt -c 'NIXOS_INSTALL_BOOTLOADER=1 /nix/var/nix/profiles/system/bin/switch-to-configuration boot'` |
+| Długi start | `systemd-analyze blame` i `systemd-analyze critical-chain` pokazują, co trwa najdłużej |
 | Sway nie startuje, czarny ekran po zalogowaniu | w konsoli (`Ctrl+Alt+F2`): `sway 2> ~/sway.log`, przeczytaj log |
 | Laptop losowo zamarza (znany problem części układów Bay Trail/Braswell) | dopisz w `modules/nixos/core/boot.nix` do `kernelParams`: `"intel_idle.max_cstate=1"` |
 | Wi-Fi zablokowane (`rfkill list` → *Hard blocked: yes*) | `sudo modprobe -r ideapad_laptop`; jeśli pomaga, dopisz w hoście `boot.blacklistedKernelModules = [ "ideapad_laptop" ];` |
